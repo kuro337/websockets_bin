@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WebSockets Sender</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      h1 {
+        color: #333;
+      }
+
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        transition-duration: 0.2s;
+        cursor: pointer;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.4);
+      }
+
+      button:hover {
+        background-color: #339af0;
+        color: white;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        box-sizing: border-box;
+      }
+
+      .status {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: #333;
+      }
+
+      .status-dot {
+        height: 10px;
+        width: 10px;
+        background-color: red;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+      }
+
+      .connected .status-dot {
+        background-color: green;
+      }
+
+      button#connectButton.disconnected {
+        background-color: #007bff;
+      }
+
+      button#connectButton.connected {
+        opacity: 0.5;
+        background-color: red;
+      }
+    </style>
+
+    <script>
+      let socket;
+
+      function setupWebSocket() {
+        console.log("Attempting to connect to WebSocket server...");
+        userName = document.getElementById("nameInput").value;
+
+        socket = new WebSocket("ws://localhost:9001");
+
+        socket.addEventListener("open", (event) => {
+          console.log("WebSocket connection opened:", event);
+          socket.send(JSON.stringify({ type: "name", user_name: userName }));
+
+          document.getElementById("messageArea").style.opacity = "1";
+          document.getElementById("connectButton").textContent = "Disconnect";
+          document.getElementById("status").classList.add("connected");
+          document.getElementById("connectButton").classList.add("connected");
+          document
+            .getElementById("connectButton")
+            .classList.remove("disconnected");
+        });
+
+        socket.addEventListener("close", (event) => {
+          console.log("WebSocket connection closed:", event);
+          document.getElementById("messageArea").style.opacity = "0.4";
+          document.getElementById("connectButton").textContent = "Connect";
+          document.getElementById("status").classList.remove("connected");
+          document
+            .getElementById("connectButton")
+            .classList.remove("connected");
+          document
+            .getElementById("connectButton")
+            .classList.add("disconnected");
+        });
+
+        socket.addEventListener("error", (event) => {
+          console.error("WebSocket error:", event);
+          document.getElementById("connectButton").textContent = "Connect";
+          document.getElementById("status").classList.remove("connected");
+          document
+            .getElementById("connectButton")
+            .classList.remove("connected");
+          document
+            .getElementById("connectButton")
+            .classList.add("disconnected");
+        });
+
+        setInterval(function () {
+          if (socket.readyState !== WebSocket.OPEN) {
+            document.getElementById("connectButton").textContent = "Connect";
+            document.getElementById("status").classList.remove("connected");
+            document
+              .getElementById("connectButton")
+              .classList.remove("connected");
+            document
+              .getElementById("connectButton")
+              .classList.add("disconnected");
+          }
+        }, 2000);
+      }
+
+      function sendMessage() {
+        const messageInput = document.getElementById("messageInput");
+        const message = messageInput.value;
+
+        if (socket && message) {
+          socket.send(JSON.stringify({ type: "message", content: message }));
+
+          messageInput.value = "";
+        } else {
+          console.error(
+            "WebSocket connection not established or empty message"
+          );
+        }
+      }
+
+      function getLastMessages() {
+        console.log("Getting last 5 messages...");
+      }
+
+      function toggleConnection() {
+        if (document.getElementById("nameInput").value == "") {
+          alert("Please enter a username before Connecting!");
+          return;
+        }
+
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.close();
+        } else {
+          setupWebSocket();
+        }
+      }
+    </script>
+  </head>
+
+  <body>
+    <h1>WebSocket Sender</h1>
+    <div>Connect to the Server and begin sending messages.</div>
+
+    <h2>User Name</h2>
+    <div style="display: flex; flex-direction: column">
+      <input
+        type="text"
+        id="nameInput"
+        placeholder="Enter your name"
+        style="width: 14rem"
+      />
+
+      <button
+        id="connectButton"
+        onclick="toggleConnection()"
+        style="width: 8rem"
+      >
+        Connect
+      </button>
+    </div>
+    <div id="messageArea" style="opacity: 0.4">
+      <h2>Send Message</h2>
+      <form onsubmit="event.preventDefault(); sendMessage();">
+        <input type="text" id="messageInput" placeholder="Type your message" />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+
+    <div id="status" class="status">
+      <span class="status-dot"></span> Connection Status
+    </div>
+  </body>
+</html>
